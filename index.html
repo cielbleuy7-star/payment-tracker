@@ -66,6 +66,21 @@
     <ul id="sub-list" class="history-list"></ul>
     <p id="sub-empty" class="empty-msg hidden">固定費・サブスクはまだ登録されていません。</p>
   </section>
+
+  <!-- 設定タブ -->
+  <section id="view-settings" class="view">
+    <div class="card">
+      <h2>データのバックアップ</h2>
+      <p class="settings-desc">機種変更などでデータを引き継ぎたいときは、バックアップファイルを書き出してから新しい端末で読み込んでください。</p>
+      <button id="btn-export" class="btn-primary settings-btn">バックアップを書き出す</button>
+    </div>
+    <div class="card">
+      <h2>データの読み込み</h2>
+      <p class="settings-desc">書き出したバックアップファイルを選択すると、この端末の現在のデータと置き換えます。</p>
+      <button id="btn-import" class="btn-secondary settings-btn">バックアップを読み込む</button>
+      <input type="file" id="import-file" accept="application/json" class="hidden">
+    </div>
+  </section>
 </main>
 
 <button id="fab-add" class="fab" aria-label="支払いを追加">＋</button>
@@ -79,6 +94,9 @@
   </button>
   <button class="tab-btn" data-view="view-subs">
     <span class="tab-icon">🔁</span><span>固定費</span>
+  </button>
+  <button class="tab-btn" data-view="view-settings">
+    <span class="tab-icon">⚙️</span><span>設定</span>
   </button>
 </nav>
 

@@ -416,6 +416,79 @@
     renderSubs();
   });
 
+  // ---------- settings: backup / restore ----------
+  async function exportData() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      transactions,
+      subscriptions,
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const filename = `payment-tracker-backup-${todayStr()}.json`;
+
+    if (navigator.canShare && typeof File !== "undefined") {
+      try {
+        const file = new File([json], filename, { type: "application/json" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: "支払い管理バックアップ" });
+          return;
+        }
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        // 共有に失敗した場合はダウンロードにフォールバック
+      }
+    }
+
+    const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function importDataFromFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      let data;
+      try {
+        data = JSON.parse(reader.result);
+      } catch {
+        alert("ファイルの読み込みに失敗しました。正しいバックアップファイルを選択してください。");
+        return;
+      }
+      if (!Array.isArray(data.transactions) || !Array.isArray(data.subscriptions)) {
+        alert("バックアップファイルの形式が正しくありません。");
+        return;
+      }
+      const ok = confirm(
+        `この端末の現在のデータを置き換えます。\n支払い記録：${data.transactions.length}件\n固定費：${data.subscriptions.length}件\n\nよろしいですか？`
+      );
+      if (!ok) return;
+
+      transactions = data.transactions;
+      subscriptions = data.subscriptions;
+      saveTx(transactions);
+      saveSubs(subscriptions);
+      fillMonthSelect($("#filter-month"), monthKey(todayStr()));
+      fillMonthSelect($("#stats-month"), monthKey(todayStr()));
+      renderHistory();
+      renderSubs();
+      alert("データを読み込みました。");
+    };
+    reader.readAsText(file);
+  }
+
+  $("#btn-export").addEventListener("click", exportData);
+  $("#btn-import").addEventListener("click", () => $("#import-file").click());
+  $("#import-file").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) importDataFromFile(file);
+    e.target.value = "";
+  });
+
   // ---------- init ----------
   function init() {
     fillCategorySelect($("#payment-category"), CATEGORIES, false);

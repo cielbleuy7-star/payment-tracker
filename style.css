@@ -141,6 +141,15 @@ select, input[type="text"], input[type="number"], input[type="date"] {
   font-weight: 600;
   color: var(--text-secondary);
 }
+.settings-desc {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.settings-btn {
+  width: 100%;
+}
 
 .history-summary {
   display: flex;
