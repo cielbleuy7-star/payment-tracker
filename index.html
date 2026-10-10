@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>支払い管理</title>
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="支払い管理">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>支払い管理</h1>
+</header>
+
+<div id="reminder-banner" class="reminder-banner hidden"></div>
+
+<main>
+  <!-- 履歴タブ -->
+  <section id="view-history" class="view active">
+    <div class="toolbar">
+      <select id="filter-month"></select>
+      <select id="filter-category">
+        <option value="">すべてのカテゴリ</option>
+      </select>
+    </div>
+    <div id="history-summary" class="history-summary"></div>
+    <ul id="history-list" class="history-list"></ul>
+    <p id="history-empty" class="empty-msg hidden">まだ記録がありません。右下の「＋」から追加しましょう。</p>
+  </section>
+
+  <!-- 集計タブ -->
+  <section id="view-stats" class="view">
+    <div class="toolbar">
+      <select id="stats-month"></select>
+    </div>
+    <div class="card">
+      <h2>カテゴリ別</h2>
+      <canvas id="chart-category" height="220"></canvas>
+      <p id="stats-empty" class="empty-msg hidden">この月のデータがありません。</p>
+    </div>
+    <div class="card">
+      <h2>月別推移（直近6ヶ月）</h2>
+      <canvas id="chart-trend" height="220"></canvas>
+    </div>
+  </section>
+
+  <!-- 固定費タブ -->
+  <section id="view-subs" class="view">
+    <div class="toolbar toolbar-right">
+      <button id="btn-add-sub" class="btn-secondary">＋ 固定費を追加</button>
+    </div>
+    <ul id="sub-list" class="history-list"></ul>
+    <p id="sub-empty" class="empty-msg hidden">固定費・サブスクはまだ登録されていません。</p>
+  </section>
+</main>
+
+<button id="fab-add" class="fab" aria-label="支払いを追加">＋</button>
+
+<nav class="tabbar">
+  <button class="tab-btn active" data-view="view-history">
+    <span class="tab-icon">📋</span><span>履歴</span>
+  </button>
+  <button class="tab-btn" data-view="view-stats">
+    <span class="tab-icon">📊</span><span>集計</span>
+  </button>
+  <button class="tab-btn" data-view="view-subs">
+    <span class="tab-icon">🔁</span><span>固定費</span>
+  </button>
+</nav>
+
+<!-- 支払い追加/編集モーダル -->
+<div id="modal-payment" class="modal hidden">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 id="payment-modal-title">支払いを記録</h2>
+    <form id="form-payment">
+      <input type="hidden" id="payment-id">
+      <label>日付
+        <input type="date" id="payment-date" required>
+      </label>
+      <label>金額（円）
+        <input type="number" id="payment-amount" inputmode="numeric" min="0" step="1" required placeholder="0">
+      </label>
+      <label>カテゴリ
+        <select id="payment-category"></select>
+      </label>
+      <label>メモ（任意）
+        <input type="text" id="payment-memo" placeholder="例：スーパーで食材">
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="btn-delete-payment" style="display:none;">削除</button>
+        <button type="button" class="btn-secondary" id="btn-cancel-payment">キャンセル</button>
+        <button type="submit" class="btn-primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 固定費追加/編集モーダル -->
+<div id="modal-sub" class="modal hidden">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 id="sub-modal-title">固定費・サブスクを追加</h2>
+    <form id="form-sub">
+      <input type="hidden" id="sub-id">
+      <label>名称
+        <input type="text" id="sub-name" required placeholder="例：Netflix">
+      </label>
+      <label>金額（円）
+        <input type="number" id="sub-amount" inputmode="numeric" min="0" step="1" required placeholder="0">
+      </label>
+      <label>カテゴリ
+        <select id="sub-category"></select>
+      </label>
+      <label>支払日（毎月何日）
+        <input type="number" id="sub-day" min="1" max="31" required placeholder="1〜31">
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="btn-delete-sub" style="display:none;">削除</button>
+        <button type="button" class="btn-secondary" id="btn-cancel-sub">キャンセル</button>
+        <button type="submit" class="btn-primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
