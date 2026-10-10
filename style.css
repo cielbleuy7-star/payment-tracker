@@ -81,9 +81,32 @@ body {
   z-index: 5;
 }
 .app-header h1 {
-  margin: 0;
+  margin: 0 0 10px;
   font-size: 20px;
   font-weight: 700;
+}
+
+.profile-switch {
+  display: flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+.profile-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.profile-btn.active {
+  background: var(--accent);
+  color: #fff;
 }
 
 .reminder-banner {

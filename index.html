@@ -18,6 +18,10 @@
 
 <header class="app-header">
   <h1>支払い管理</h1>
+  <div class="profile-switch" role="tablist">
+    <button class="profile-btn" data-profile="kakei">家計</button>
+    <button class="profile-btn" data-profile="kojin">個人</button>
+  </div>
 </header>
 
 <div id="reminder-banner" class="reminder-banner hidden"></div>
@@ -71,12 +75,12 @@
   <section id="view-settings" class="view">
     <div class="card">
       <h2>データのバックアップ</h2>
-      <p class="settings-desc">機種変更などでデータを引き継ぎたいときは、バックアップファイルを書き出してから新しい端末で読み込んでください。</p>
+      <p class="settings-desc">「家計」「個人」両方のユーザーのデータをまとめて書き出します。機種変更などでデータを引き継ぎたいときは、バックアップファイルを書き出してから新しい端末で読み込んでください。</p>
       <button id="btn-export" class="btn-primary settings-btn">バックアップを書き出す</button>
     </div>
     <div class="card">
       <h2>データの読み込み</h2>
-      <p class="settings-desc">書き出したバックアップファイルを選択すると、この端末の現在のデータと置き換えます。</p>
+      <p class="settings-desc">書き出したバックアップファイルを選択すると、この端末の「家計」「個人」両方のデータを置き換えます。</p>
       <button id="btn-import" class="btn-secondary settings-btn">バックアップを読み込む</button>
       <input type="file" id="import-file" accept="application/json" class="hidden">
     </div>

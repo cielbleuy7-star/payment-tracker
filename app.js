@@ -4,9 +4,17 @@
   const CATEGORIES = ["食費", "日用品", "交通費", "娯楽", "医療", "住居", "通信", "その他"];
   const SUB_CATEGORIES = ["住居", "通信", "娯楽", "日用品", "その他"];
 
-  const STORAGE_TX = "pt_transactions";
-  const STORAGE_SUB = "pt_subscriptions";
+  const PROFILES = [
+    { id: "kakei", label: "家計" },
+    { id: "kojin", label: "個人" },
+  ];
+
+  const STORAGE_TX_BASE = "pt_transactions";
+  const STORAGE_SUB_BASE = "pt_subscriptions";
+  const STORAGE_PROFILE = "pt_active_profile";
   const STORAGE_NOTIFY = "pt_notify_enabled";
+
+  const profileStorageKey = (base, profile) => `${base}_${profile}`;
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -26,18 +34,36 @@
   }
 
   // ---------- storage ----------
-  function loadTx() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_TX)) || []; }
+  function readJsonList(key) {
+    try { return JSON.parse(localStorage.getItem(key)) || []; }
     catch { return []; }
   }
-  function saveTx(list) { localStorage.setItem(STORAGE_TX, JSON.stringify(list)); }
 
-  function loadSubs() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_SUB)) || []; }
-    catch { return []; }
+  // 旧バージョン（プロファイル機能追加前）のデータを「個人」プロファイルへ一度だけ移行する
+  function migrateLegacyData() {
+    const legacyTx = localStorage.getItem(STORAGE_TX_BASE);
+    const legacySub = localStorage.getItem(STORAGE_SUB_BASE);
+    const kojinTxKey = profileStorageKey(STORAGE_TX_BASE, "kojin");
+    const kojinSubKey = profileStorageKey(STORAGE_SUB_BASE, "kojin");
+    if (legacyTx !== null && localStorage.getItem(kojinTxKey) === null) {
+      localStorage.setItem(kojinTxKey, legacyTx);
+      localStorage.removeItem(STORAGE_TX_BASE);
+    }
+    if (legacySub !== null && localStorage.getItem(kojinSubKey) === null) {
+      localStorage.setItem(kojinSubKey, legacySub);
+      localStorage.removeItem(STORAGE_SUB_BASE);
+    }
   }
-  function saveSubs(list) { localStorage.setItem(STORAGE_SUB, JSON.stringify(list)); }
 
+  function loadTx() { return readJsonList(profileStorageKey(STORAGE_TX_BASE, currentProfile)); }
+  function saveTx(list) { localStorage.setItem(profileStorageKey(STORAGE_TX_BASE, currentProfile), JSON.stringify(list)); }
+
+  function loadSubs() { return readJsonList(profileStorageKey(STORAGE_SUB_BASE, currentProfile)); }
+  function saveSubs(list) { localStorage.setItem(profileStorageKey(STORAGE_SUB_BASE, currentProfile), JSON.stringify(list)); }
+
+  migrateLegacyData();
+  let currentProfile = localStorage.getItem(STORAGE_PROFILE) || "kojin";
+  if (!PROFILES.some((p) => p.id === currentProfile)) currentProfile = "kojin";
   let transactions = loadTx();
   let subscriptions = loadSubs();
 
@@ -86,6 +112,32 @@
     });
     selectEl.value = selected && sorted.includes(selected) ? selected : sorted[0];
   }
+
+  // ---------- profile switch ----------
+  function switchProfile(id) {
+    if (!PROFILES.some((p) => p.id === id) || id === currentProfile) {
+      updateProfileButtons();
+      return;
+    }
+    currentProfile = id;
+    localStorage.setItem(STORAGE_PROFILE, currentProfile);
+    transactions = loadTx();
+    subscriptions = loadSubs();
+    updateProfileButtons();
+    fillMonthSelect($("#filter-month"), monthKey(todayStr()));
+    fillMonthSelect($("#stats-month"), monthKey(todayStr()));
+    renderHistory();
+    renderSubs();
+    if ($("#view-stats").classList.contains("active")) renderStats();
+  }
+
+  function updateProfileButtons() {
+    $$(".profile-btn").forEach((b) => b.classList.toggle("active", b.dataset.profile === currentProfile));
+  }
+
+  $$(".profile-btn").forEach((btn) => {
+    btn.addEventListener("click", () => switchProfile(btn.dataset.profile));
+  });
 
   // ---------- tabs ----------
   function switchView(viewId) {
@@ -355,13 +407,14 @@
       const when = daysLeft === 0 ? "本日" : daysLeft < 0 ? `${-daysLeft}日前` : `${daysLeft}日後`;
       return `${sub.name}：${yen(sub.amount)}（${when}）`;
     });
-    banner.innerHTML = `🔔 支払い予定<br>${lines.join("<br>")}`;
+    const profileLabel = PROFILES.find((p) => p.id === currentProfile).label;
+    banner.innerHTML = `🔔 支払い予定（${profileLabel}）<br>${lines.join("<br>")}`;
     banner.classList.remove("hidden");
 
     if (localStorage.getItem(STORAGE_NOTIFY) === "1" && "Notification" in window && Notification.permission === "granted") {
-      const key = "pt_last_notified_" + todayStr();
+      const key = `pt_last_notified_${currentProfile}_${todayStr()}`;
       if (!sessionStorage.getItem(key)) {
-        new Notification("支払いリマインド", { body: lines.join("\n") });
+        new Notification(`支払いリマインド（${profileLabel}）`, { body: lines.join("\n") });
         sessionStorage.setItem(key, "1");
       }
     }
@@ -418,10 +471,16 @@
 
   // ---------- settings: backup / restore ----------
   async function exportData() {
+    const profiles = {};
+    PROFILES.forEach((p) => {
+      profiles[p.id] = {
+        transactions: readJsonList(profileStorageKey(STORAGE_TX_BASE, p.id)),
+        subscriptions: readJsonList(profileStorageKey(STORAGE_SUB_BASE, p.id)),
+      };
+    });
     const payload = {
       exportedAt: new Date().toISOString(),
-      transactions,
-      subscriptions,
+      profiles,
     };
     const json = JSON.stringify(payload, null, 2);
     const filename = `payment-tracker-backup-${todayStr()}.json`;
@@ -459,23 +518,46 @@
         alert("ファイルの読み込みに失敗しました。正しいバックアップファイルを選択してください。");
         return;
       }
-      if (!Array.isArray(data.transactions) || !Array.isArray(data.subscriptions)) {
+
+      if (data && data.profiles && typeof data.profiles === "object") {
+        // 新形式：家計・個人のデータをまとめて復元
+        const summary = PROFILES.map((p) => {
+          const d = data.profiles[p.id];
+          const txCount = d && Array.isArray(d.transactions) ? d.transactions.length : 0;
+          const subCount = d && Array.isArray(d.subscriptions) ? d.subscriptions.length : 0;
+          return `${p.label}：支払い${txCount}件 / 固定費${subCount}件`;
+        }).join("\n");
+        const ok = confirm(`この端末の「家計」「個人」両方のデータを置き換えます。\n${summary}\n\nよろしいですか？`);
+        if (!ok) return;
+
+        PROFILES.forEach((p) => {
+          const d = data.profiles[p.id];
+          const tx = d && Array.isArray(d.transactions) ? d.transactions : [];
+          const subs = d && Array.isArray(d.subscriptions) ? d.subscriptions : [];
+          localStorage.setItem(profileStorageKey(STORAGE_TX_BASE, p.id), JSON.stringify(tx));
+          localStorage.setItem(profileStorageKey(STORAGE_SUB_BASE, p.id), JSON.stringify(subs));
+        });
+      } else if (Array.isArray(data.transactions) && Array.isArray(data.subscriptions)) {
+        // 旧形式（単一プロファイル時代）のバックアップ：現在選択中のプロファイルへ読み込む
+        const profileLabel = PROFILES.find((p) => p.id === currentProfile).label;
+        const ok = confirm(
+          `「${profileLabel}」の現在のデータを置き換えます。\n支払い記録：${data.transactions.length}件\n固定費：${data.subscriptions.length}件\n\nよろしいですか？`
+        );
+        if (!ok) return;
+        localStorage.setItem(profileStorageKey(STORAGE_TX_BASE, currentProfile), JSON.stringify(data.transactions));
+        localStorage.setItem(profileStorageKey(STORAGE_SUB_BASE, currentProfile), JSON.stringify(data.subscriptions));
+      } else {
         alert("バックアップファイルの形式が正しくありません。");
         return;
       }
-      const ok = confirm(
-        `この端末の現在のデータを置き換えます。\n支払い記録：${data.transactions.length}件\n固定費：${data.subscriptions.length}件\n\nよろしいですか？`
-      );
-      if (!ok) return;
 
-      transactions = data.transactions;
-      subscriptions = data.subscriptions;
-      saveTx(transactions);
-      saveSubs(subscriptions);
+      transactions = loadTx();
+      subscriptions = loadSubs();
       fillMonthSelect($("#filter-month"), monthKey(todayStr()));
       fillMonthSelect($("#stats-month"), monthKey(todayStr()));
       renderHistory();
       renderSubs();
+      if ($("#view-stats").classList.contains("active")) renderStats();
       alert("データを読み込みました。");
     };
     reader.readAsText(file);
@@ -491,6 +573,7 @@
 
   // ---------- init ----------
   function init() {
+    updateProfileButtons();
     fillCategorySelect($("#payment-category"), CATEGORIES, false);
     fillCategorySelect($("#filter-category"), CATEGORIES, true);
     fillCategorySelect($("#sub-category"), SUB_CATEGORIES, false);
