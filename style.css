@@ -13,6 +13,7 @@
   --accent-dark:    #184f95;
   --danger:         #d03b3b;
   --good:           #0ca30c;
+  --warning:        #fab219;
 
   --series-1: #2a78d6; /* 食費 */
   --series-2: #eb6834; /* 日用品 */
@@ -40,6 +41,7 @@
     --accent-dark:    #86b6ef;
     --danger:         #e66767;
     --good:           #0ca30c;
+    --warning:        #fab219;
 
     --series-1: #3987e5;
     --series-2: #d95926;
@@ -186,6 +188,24 @@ select, input[type="text"], input[type="number"], input[type="date"] {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.item-title .item-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.badge-reimbursement {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--warning) 22%, var(--surface-1));
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 .item-sub {
   font-size: 12px;
@@ -295,6 +315,18 @@ select, input[type="text"], input[type="number"], input[type="date"] {
 .modal-sheet form label > input,
 .modal-sheet form label > select {
   margin-top: 6px;
+}
+.checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+.checkbox-label input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  accent-color: var(--accent);
 }
 .modal-actions {
   display: flex;

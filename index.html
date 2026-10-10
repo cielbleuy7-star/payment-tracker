@@ -31,6 +31,12 @@
         <option value="">すべてのカテゴリ</option>
       </select>
     </div>
+    <div class="toolbar">
+      <select id="filter-reimbursement">
+        <option value="">すべて</option>
+        <option value="1">建替払い中のみ</option>
+      </select>
+    </div>
     <div id="history-summary" class="history-summary"></div>
     <ul id="history-list" class="history-list"></ul>
     <p id="history-empty" class="empty-msg hidden">まだ記録がありません。右下の「＋」から追加しましょう。</p>
@@ -94,6 +100,10 @@
       </label>
       <label>メモ（任意）
         <input type="text" id="payment-memo" placeholder="例：スーパーで食材">
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="payment-reimbursement">
+        建替払い中（誰かに後で精算してもらう予定）
       </label>
       <div class="modal-actions">
         <button type="button" class="btn-ghost" id="btn-delete-payment" style="display:none;">削除</button>

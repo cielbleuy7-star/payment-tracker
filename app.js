@@ -101,6 +101,7 @@
   function renderHistory() {
     const month = $("#filter-month").value;
     const category = $("#filter-category").value;
+    const reimbursementOnly = $("#filter-reimbursement").value === "1";
     const list = $("#history-list");
     const empty = $("#history-empty");
     list.innerHTML = "";
@@ -108,21 +109,27 @@
     const filtered = transactions
       .filter((t) => !month || monthKey(t.date) === month)
       .filter((t) => !category || t.category === category)
+      .filter((t) => !reimbursementOnly || t.reimbursement)
       .sort((a, b) => (a.date < b.date ? 1 : -1));
 
     const total = filtered.reduce((sum, t) => sum + t.amount, 0);
-    $("#history-summary").innerHTML = month
-      ? `${monthLabel(month)}の合計<strong>${yen(total)}</strong>`
-      : `合計<strong>${yen(total)}</strong>`;
+    const totalLabel = reimbursementOnly ? "建替払い中の合計" : month ? `${monthLabel(month)}の合計` : "合計";
+    $("#history-summary").innerHTML = `${totalLabel}<strong>${yen(total)}</strong>`;
 
     empty.classList.toggle("hidden", filtered.length > 0);
+    if (filtered.length === 0) {
+      empty.textContent = reimbursementOnly
+        ? "建替払い中の記録はありません。"
+        : "まだ記録がありません。右下の「＋」から追加しましょう。";
+    }
 
     filtered.forEach((t) => {
       const li = document.createElement("li");
+      const badge = t.reimbursement ? '<span class="badge-reimbursement">建替中</span>' : "";
       li.innerHTML = `
         <span class="item-dot" style="background:${categoryColor(t.category)}"></span>
         <span class="item-main">
-          <div class="item-title">${escapeHtml(t.memo) || t.category}</div>
+          <div class="item-title"><span class="item-title-text">${escapeHtml(t.memo) || t.category}</span>${badge}</div>
           <div class="item-sub">${t.date} ・ ${t.category}</div>
         </span>
         <span class="item-amount">${yen(t.amount)}</span>
@@ -142,6 +149,7 @@
 
   $("#filter-month").addEventListener("change", renderHistory);
   $("#filter-category").addEventListener("change", renderHistory);
+  $("#filter-reimbursement").addEventListener("change", renderHistory);
 
   // ---------- payment modal ----------
   const modalPayment = $("#modal-payment");
@@ -154,6 +162,7 @@
     $("#payment-amount").value = tx ? tx.amount : "";
     $("#payment-category").value = tx ? tx.category : CATEGORIES[0];
     $("#payment-memo").value = tx ? tx.memo || "" : "";
+    $("#payment-reimbursement").checked = tx ? !!tx.reimbursement : false;
     $("#btn-delete-payment").style.display = tx ? "" : "none";
     modalPayment.classList.remove("hidden");
   }
@@ -172,6 +181,7 @@
       amount: Number($("#payment-amount").value) || 0,
       category: $("#payment-category").value,
       memo: $("#payment-memo").value.trim(),
+      reimbursement: $("#payment-reimbursement").checked,
     };
     const idx = transactions.findIndex((t) => t.id === id);
     if (idx >= 0) transactions[idx] = tx; else transactions.push(tx);
